@@ -4,6 +4,8 @@
 #include "sys/wait.h"
 #include <iostream>
 #include <vector>
+#include <fcntl.h>
+#include <cstring>
 
 void Executer::execute(const std::vector<std::string> &tokens)
 {
@@ -18,10 +20,28 @@ void Executer::execute(const std::vector<std::string> &tokens)
 
     pid_t pid = fork();
 
-    if (pid == 0)
+	if (pid == 0)
+{
+    for (int i = 0; i < (int)tokens.size(); i++)
     {
-        int status = execvp(argv[0], const_cast<char *const *>(argv.data()));
+        if (tokens[i] == ">")
+        {
+            int fd = open(tokens[i + 1].c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            dup2(fd, STDOUT_FILENO);
+            close(fd);
+            break;
+        }
+    }
 
+    std::vector<const char *> clean_argv;
+    for (int i = 0; i < (int)tokens.size(); i++)
+    {
+        if (tokens[i] == ">") break;
+        clean_argv.push_back(tokens[i].c_str());
+    }
+    clean_argv.push_back(nullptr);
+
+    int status = execvp(clean_argv[0], const_cast<char *const *>(clean_argv.data()));
         if (status != 0)
         {
             std::string msg = "failed to execute command";
